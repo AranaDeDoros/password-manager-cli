@@ -45,27 +45,19 @@ object Main {
 
       if !dbFile.exists() then
         println("creating...")
-
         println("enter username")
         val usr = readLine()
-
         println("enter master password")
         val console = System.console()
         if console == null then System.exit(1)
-
         val passwordChars = console.readPassword("Password: ")
         val password      = String(passwordChars)
         println(s"entered password (hidden): $password")
-
-        val content      = "^".getBytes("UTF-8")
-        val userInfo     = s"$usr|$password".getBytes("UTF-8")
-        val usrEncrypted = Crypto.encrypt(userInfo)
-        val encrypted    = Crypto.encrypt(content)
-
-        FileUtils.writeBytes("usr.enc", usrEncrypted)
-        FileUtils.writeBytes("db.enc", encrypted)
-
-        println("database created")
+        FileUtils.init(usr, password) match
+          case Right(db) =>
+            println(s"database '${db.name}' created for user ${db.user.name}!")
+          case Left(err) =>
+            println(s"error creating database: ${err.getMessage}")
       else
         println("database already exists, select an option \n" +
           "add an entry (+) | delete an entry (-) | list all (*)   search (/)")
@@ -74,7 +66,7 @@ object Main {
           case "+" =>
             println("title?")
             val title = readLine()
-            println(s"adding: $title") // integrate DB
+            println(s"adding: $title")
           case "-" =>
             println("title?")
             val title = readLine()
