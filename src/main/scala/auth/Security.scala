@@ -23,7 +23,18 @@ object Security {
   import javax.crypto.Cipher
   import javax.crypto.spec.{GCMParameterSpec, SecretKeySpec}
 
-  object Crypto:
+  object Crypto extends PasswordEncryptor:
+
+    override def encrypt(dp: DecryptedPassword): EncryptedPassword =
+      EncryptedPassword(
+        encrypt(dp.value.getBytes(java.nio.charset.Charset.forName("UTF-8")))
+      )
+
+    override def decrypt(ep: EncryptedPassword): DecryptedPassword =
+      DecryptedPassword(
+        new String(decrypt(ep.bytes), "UTF_8")
+      )
+
     private val AES_KEY_SIZE   = 32  // 256 bits
     private val GCM_NONCE_SIZE = 12
     private val GCM_TAG_SIZE   = 128 // bits
@@ -52,25 +63,14 @@ object Security {
       cipher.init(Cipher.DECRYPT_MODE, secretKey, spec)
       cipher.doFinal(ciphertext)
 
-  trait Encryptable:
-    def encrypted: Array[Byte]
+  final case class DecryptedPassword(value: String):
+    override def toString: String = "<DecryptedPassword>"
 
-  trait Decryptable:
-    def decrypted: Array[Byte]
+  final case class EncryptedPassword(bytes: Array[Byte]):
+    override def toString: String = "<EncryptedPassword>"
 
-  private object EncryptionUtils:
-    def encrypt(plain: String): Array[Byte] =
-      val passw = plain.getBytes("UTF-8")
-      Crypto.encrypt(passw)
-
-    def decrypt(encrypted: EncryptedPassword): Array[Byte] =
-      val passw = encrypted.plain.getBytes("UTF-8")
-      Crypto.decrypt(passw)
-
-  case class DecryptedPassword(encpassword: EncryptedPassword) extends Decryptable:
-    def decrypted: Array[Byte] = EncryptionUtils.decrypt(encpassword)
-
-  case class EncryptedPassword(plain: String) extends Encryptable:
-    def encrypted: Array[Byte] = EncryptionUtils.encrypt(plain)
+  trait PasswordEncryptor:
+    def encrypt(dp: DecryptedPassword): EncryptedPassword
+    def decrypt(ep: EncryptedPassword): DecryptedPassword
 
 }
