@@ -52,6 +52,9 @@ object Persistence {
     def +(entry: Entry): Database =
       copy(entries = entries + (entry.title -> entry))
 
+    def -(title: String): Database =
+      copy(entries = entries - title)
+
     def -(entry: Entry): Database =
       copy(entries = entries - entry.title)
 

@@ -10,9 +10,11 @@ object Main {
 
   private def parseCommand(args: Array[String]): Unit =
     args.toList match
-      case "--add" :: title :: Nil =>
+      case "--add" :: site :: title :: Nil =>
         println(s"adding entry: $title")
-        val gh = Entry("GitHub.com", "github", "password")
+        println("enter password")
+        val password: String = enterPassword
+        val gh               = Entry(site, title, password)
 //        val f: Entry => Database =
 //          entry => Database(entries = hm + (entry.title -> entry))
         val bytes = FileUtils.readBytes() // read
@@ -22,10 +24,10 @@ object Main {
 
       case "--del" :: title :: Nil =>
         println(s"deleting entry: $title")
-        val gh    = Entry("GitHub.com", "github", "password")
+        println("enter password")
         val bytes = FileUtils.readBytes() // read
         val db    = Database()            // deserialize
-        val added = db - gh
+        val added = db - title
         FileUtils.writeBytes(data = added.toString.getBytes("UTF-8"))
 
       case "--list" :: Nil =>
@@ -46,6 +48,14 @@ object Main {
       case "--help" :: Nil | Nil | List(_, _*) =>
         println("use a valid option (--add, --del, --list, --search, --init")
 
+  private def enterPassword = {
+    val console = System.console()
+    if console == null then System.exit(1)
+    val passwordChars = console.readPassword("Password: ")
+    val password      = String(passwordChars)
+    password
+  }
+
   private def checkDB(): Unit = {
     try
       val dbFile = new File("db.enc")
@@ -54,10 +64,7 @@ object Main {
         println("enter username")
         val usr = readLine()
         println("enter master password")
-        val console = System.console()
-        if console == null then System.exit(1)
-        val passwordChars = console.readPassword("Password: ")
-        val password      = String(passwordChars)
+        val password: String = enterPassword
         println(s"entered password (hidden): $password")
         FileUtils.init(usr, password) match
           case Right(db) =>
