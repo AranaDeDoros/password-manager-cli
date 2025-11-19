@@ -1,8 +1,7 @@
 package org.aranadedoros
 
-import auth.Security.*
-import auth.Security.KeyProvider.given_SecretKey
 import db.FileUtils
+import db.Persistence.{Database, Entry}
 
 import java.io.File
 import scala.io.StdIn.readLine
@@ -13,36 +12,43 @@ object Main {
     args.toList match
       case "--add" :: title :: Nil =>
         println(s"adding entry: $title")
+        val gh = Entry("GitHub.com", "github", "password")
+//        val f: Entry => Database =
+//          entry => Database(entries = hm + (entry.title -> entry))
+        val bytes = FileUtils.readBytes() // read
+        val db    = Database()            // deserialize
+        val added = db + gh
+        FileUtils.writeBytes(data = added.toString.getBytes("UTF-8"))
 
       case "--del" :: title :: Nil =>
         println(s"deleting entry: $title")
+        val gh    = Entry("GitHub.com", "github", "password")
+        val bytes = FileUtils.readBytes() // read
+        val db    = Database()            // deserialize
+        val added = db - gh
+        FileUtils.writeBytes(data = added.toString.getBytes("UTF-8"))
 
       case "--list" :: Nil =>
         println("listing entries...")
+        val bytes = FileUtils.readBytes() // read
+        val db    = Database()
+        println(db)
 
       case "--search" :: title :: Nil =>
         println(s"searching for: $title")
+        val bytes = FileUtils.readBytes() // read
+        val db    = Database()            // deserialize
+        db / "github"
 
       case "--init" :: Nil =>
         println("init flag received: forcing database creation")
+        checkDB()
+      case "--help" :: Nil | Nil | List(_, _*) =>
+        println("use a valid option (--add, --del, --list, --search, --init")
 
-      case _ =>
-        println("invalid command")
-        println("Valid commands:")
-        println("--init | --add <title> | --del <title> | --list | --search <title>")
-
-  def main(args: Array[String]): Unit =
-
-    val key = sys.env.getOrElse("APP_SECRET", throw new Exception("APP_SECRET not set"))
-    println(s"clave $key")
-
+  private def checkDB(): Unit = {
     try
       val dbFile = new File("db.enc")
-
-      if args.nonEmpty then
-        parseCommand(args)
-        return
-
       if !dbFile.exists() then
         println("creating...")
         println("enter username")
@@ -55,43 +61,20 @@ object Main {
         println(s"entered password (hidden): $password")
         FileUtils.init(usr, password) match
           case Right(db) =>
-            println(s"database '${db.name}' created for user ${db.user.name}!")
+            println(s"database '${db.name}' created !")
           case Left(err) =>
             println(s"error creating database: ${err.getMessage}")
       else
-        println("database already exists, select an option \n" +
-          "add an entry (+) | delete an entry (-) | list all (*)   search (/)")
-        val cmd = readLine("command: ")
-        cmd match
-          case "+" =>
-            println("title?")
-            val title = readLine()
-            println(s"adding: $title")
-          case "-" =>
-            println("title?")
-            val title = readLine()
-            println(s"deleting: $title")
-          case "*" =>
-            println("listing entries...")
-          case "/" =>
-            println("search what?")
-            val title = readLine()
-            println(s"searching: $title")
-          case _ =>
-            println("unknown")
+        println("database already exists")
     catch
       case e: NullPointerException => println(e.getMessage)
+  }
 
-//    val user    = User("yo")
-//    val db      = Database("test", user)
-//    val gh      = Entry("GitHub.com", "github", user, "password")
-//    val entries = db.addEntry(gh)
-//    println(entries)
-//    // search entry
-//    val dp = entries.searchEntry(gh)
-//    val found = dp match {
-//      case Right(e)  => e
-//      case Left(err) => err
-//    }
-//    println(found)
+  def main(args: Array[String]): Unit =
+
+    val key = sys.env.getOrElse("APP_SECRET", throw new Exception("APP_SECRET not set"))
+    println(s"clave $key")
+
+    parseCommand(Array[String]("--init"))
+
 }
