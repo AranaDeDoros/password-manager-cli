@@ -3,29 +3,60 @@ package model
 
 import auth.Security.{Crypto, DecryptedPassword, EncryptedPassword}
 
-import scala.collection.immutable.HashMap
-
+import scala.collection.immutable.{HashMap, List}
 object Model {
 
-  final case class EntryKey(value: String) extends AnyVal
+  final case class EntryKey private (value: String) extends AnyVal
 
   object EntryKey:
-    def apply(value: String): Either[String, EntryKey] =
-      if value.trim.nonEmpty then Right(new EntryKey(value))
+    def fromRaw(raw: String): Either[String, EntryKey] =
+      if raw.trim.nonEmpty then Right(EntryKey(raw.trim))
       else Left("Key cannot be empty")
 
-  final case class Site(value: String) extends AnyVal
+  final case class Site private (value: String) extends AnyVal
 
   object Site:
-    def apply(value: String): Either[String, Site] =
-      if value.trim.nonEmpty then Right(new Site(value))
+    def fromRaw(raw: String): Either[String, Site] =
+      if raw.trim.nonEmpty then Right(Site(raw.trim))
       else Left("Site cannot be empty")
 
   case class Entry(site: Site, key: EntryKey, encrypted: EncryptedPassword):
     def password: DecryptedPassword =
       Crypto.decrypt(encrypted)
 
-  type EntriesDictionary = HashMap[EntryKey, Entry]
+  sealed trait Flag:
+    def asString: String
+
+    def asArgs: List[String]
+
+  object Flag:
+    case class Add(site: Site, key: EntryKey) extends Flag:
+      private val prefix       = "--add"
+      def asArgs: List[String] = List(prefix, site.value, key.value)
+      def asString: String     = asArgs.mkString(" ")
+
+    case class Delete(site: Site, key: EntryKey) extends Flag:
+      private val prefix       = "--del"
+      def asArgs: List[String] = List(prefix, site.value, key.value)
+      def asString: String     = asArgs.mkString(" ")
+
+    case object ListAll extends Flag:
+      def asArgs           = List("--list")
+      def asString: String = "--list"
+
+    case class Search(key: EntryKey) extends Flag:
+      def asArgs: List[String] = List("--search", key.value)
+      def asString: String     = asArgs.mkString(" ")
+
+    case object Init extends Flag:
+      def asArgs   = List("--init")
+      def asString = "--init"
+
+    case object Help extends Flag:
+      def asArgs   = List("--help")
+      def asString = "--help"
+
+  private type EntriesDictionary = HashMap[EntryKey, Entry]
 
   case class Database(
       name: String = "persistence",
