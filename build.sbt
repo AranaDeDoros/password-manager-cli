@@ -4,6 +4,11 @@ ThisBuild / scalaVersion := "3.3.7"
 
 lazy val root = (project in file("."))
   .settings(
-    name := "password-manager",
-    idePackagePrefix := Some("org.aranadedoros")
+    name             := "password-manager",
+    idePackagePrefix := Some("org.aranadedoros"),
+    libraryDependencies ++= Seq(
+      "io.circe" %% "circe-core"    % "0.14.15",
+      "io.circe" %% "circe-generic" % "0.14.15",
+      "io.circe" %% "circe-parser"  % "0.14.15"
+    )
   )
