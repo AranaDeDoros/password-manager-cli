@@ -59,7 +59,7 @@ object Model {
   private type EntriesDictionary = HashMap[EntryKey, Entry]
 
   case class Database(
-      name: String = "persistence",
+      name: String = "db",
       entries: EntriesDictionary = HashMap.empty
   ):
 
