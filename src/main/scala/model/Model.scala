@@ -29,26 +29,28 @@ object Model {
 
     def asArgs: List[String]
 
+  sealed trait AuthorizedCommand
+  
   object Flag:
-    case class Add(site: Site, key: EntryKey) extends Flag:
+    case class Add(site: Site, key: EntryKey) extends Flag with AuthorizedCommand:
       private val prefix       = "--add"
       def asArgs: List[String] = List(prefix, site.value, key.value)
       def asString: String     = asArgs.mkString(" ")
 
-    case class Delete(site: Site, key: EntryKey) extends Flag:
+    case class Delete(site: Site, key: EntryKey) extends Flag with AuthorizedCommand:
       private val prefix       = "--del"
       def asArgs: List[String] = List(prefix, site.value, key.value)
       def asString: String     = asArgs.mkString(" ")
 
-    case object ListAll extends Flag:
+    case object ListAll extends Flag with AuthorizedCommand:
       def asArgs           = List("--list")
       def asString: String = "--list"
 
-    case class Search(key: EntryKey) extends Flag:
+    case class Search(key: EntryKey) extends Flag with AuthorizedCommand:
       def asArgs: List[String] = List("--search", key.value)
       def asString: String     = asArgs.mkString(" ")
 
-    case object Init extends Flag:
+    case object Init extends Flag with AuthorizedCommand:
       def asArgs   = List("--init")
       def asString = "--init"
 
@@ -59,7 +61,7 @@ object Model {
   private type EntriesDictionary = HashMap[EntryKey, Entry]
 
   case class Database(
-      name: String = "persistence",
+      name: String = "db",
       entries: EntriesDictionary = HashMap.empty
   ):
 
