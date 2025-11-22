@@ -30,9 +30,12 @@ object JsonSerialization {
     }
 
   given Decoder[EncryptedPassword] =
-    Decoder.decodeString.map { base64 =>
-      val bytes = java.util.Base64.getDecoder.decode(base64)
-      EncryptedPassword(bytes)
+    Decoder.decodeString.emap { base64 =>
+      try
+        Right(EncryptedPassword(java.util.Base64.getDecoder.decode(base64)))
+      catch
+        case e: IllegalArgumentException =>
+          Left(s"[EncryptedPassword] Invalid Base64: '${base64.take(30)}...' — ${e.getMessage}")
     }
 
   private case class EntryRecord(key: EntryKey, entry: Entry)
