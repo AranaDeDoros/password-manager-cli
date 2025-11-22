@@ -30,7 +30,7 @@ object Model {
     def asArgs: List[String]
 
   sealed trait AuthorizedCommand
-  
+
   object Flag:
     case class Add(site: Site, key: EntryKey) extends Flag with AuthorizedCommand:
       private val prefix       = "--add"
@@ -72,7 +72,7 @@ object Model {
       copy(entries = entries - key)
 
     override def toString: String =
-      entries.map { case (k, v) => s"$k | ${v.site} | ${v.key}" }.mkString("\n")
+      entries.map { case (k, v) => s" ${v.site.value} | ${v.key.value}" }.mkString("\n")
 
     def /(key: EntryKey): Either[String, Entry] =
       val optionEntry = entries.find((k, v) => v.key == key)
