@@ -1,16 +1,20 @@
 package org.aranadedoros
 package persistence
 
+import auth.Security.{MasterHashStorage, MasterPasswordService}
 import model.Model.Database
 import serialization.JsonSerialization
 
 object Persistence {
   object FileUtils:
     def init(user: String, password: String): Either[Throwable, Array[Byte]] =
-      // val usr          = User(user, password)
-      val db         = Database()
-      val serialized = JsonSerialization.serialize(db)
+      // write for the 1st time
+      val service = new MasterPasswordService()
+      val hash    = service.generateHash(password)
+      val db      = Database()
       for
-        ndb <- serialized
-      yield ndb
+        _   <- MasterHashStorage.saveHash(hash)
+        ndb <- JsonSerialization.serialize(db)
+        serialized = ndb
+      yield serialized
 }

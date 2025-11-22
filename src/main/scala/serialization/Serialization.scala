@@ -93,7 +93,7 @@ object JsonSerialization {
 
 object BinarySerialization {
 
-  def writeBytes(data: Array[Byte], path: String = "usr.enc"): Either[Throwable, Unit] =
+  def writeBytes(data: Array[Byte], path: String = "db.enc"): Either[Throwable, Unit] =
     try
       Files.write(
         Paths.get(path),

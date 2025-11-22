@@ -3,6 +3,10 @@ package auth
 
 import auth.Security.KeyProvider.given_SecretKey
 
+import de.mkammerer.argon2.{Argon2, Argon2Factory}
+
+import java.nio.file.{Files, Path, Paths}
+
 object Security {
 
   case class User(name: String, passwd: String):
@@ -72,5 +76,49 @@ object Security {
   trait PasswordEncryptor:
     def encrypt(dp: DecryptedPassword): EncryptedPassword
     def decrypt(ep: EncryptedPassword): DecryptedPassword
+
+  class MasterPasswordService:
+
+    private val argon2: Argon2 =
+      Argon2Factory.create(Argon2Factory.Argon2Types.ARGON2id)
+
+    def generateHash(password: String): String = {
+      argon2.hash(
+        3,
+        1 << 15,
+        1,
+        password.toCharArray
+      )
+    }
+
+    def verify(password: String, storedHash: String): Boolean =
+      argon2.verify(storedHash, password.toCharArray)
+
+  class PasswordManager(masterPasswordHash: String):
+    private val master = new MasterPasswordService()
+
+    def authenticate(input: String): Boolean =
+      master.verify(input, masterPasswordHash)
+
+    def validate(master: String)(f: => Boolean): Either[String, Boolean] =
+      if (authenticate(master)) Right(f)
+      else Left("wrong master password")
+
+  object MasterHashStorage:
+    private val path = Paths.get("master.hash")
+
+    def loadHash(): Either[Throwable, String] =
+      try
+        Right(Files.readString(path).trim)
+      catch
+        case e: Throwable =>
+          Left(e)
+
+    def saveHash(hash: String): Either[Throwable, Path] =
+      try
+        Right(Files.writeString(path, hash))
+      catch
+        case e: Throwable =>
+          Left(e)
 
 }
