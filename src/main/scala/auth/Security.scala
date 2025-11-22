@@ -34,7 +34,7 @@ object Security {
 
     def decrypt(ep: EncryptedPassword): DecryptedPassword =
       DecryptedPassword(
-        new String(decrypt(ep.bytes), "UTF_8")
+        new String(decrypt(ep.bytes), "UTF-8")
       )
 
     private val AES_KEY_SIZE   = 32  // 256 bits
