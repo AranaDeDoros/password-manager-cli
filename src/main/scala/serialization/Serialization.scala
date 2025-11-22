@@ -16,7 +16,7 @@ object JsonSerialization {
 
   given Encoder[Site] = Encoder.encodeString.contramap(_.value)
   given Decoder[Site] = Decoder.decodeString.emap { s =>
-    Site.fromRaw(s).left.map(identity)
+    Site.fromRaw(s)
   }
 
   given Encoder[EntryKey] = Encoder.encodeString.contramap(_.value)
@@ -77,15 +77,15 @@ object JsonSerialization {
     try
       val decryptedBytes = Crypto.decrypt(bytes)
       val json           = new String(decryptedBytes, "UTF-8")
-      io.circe.parser.decode[Database](json).left.map(err => err)
+      io.circe.parser.decode[Database](json)
     catch
       case e: Throwable => Left(e)
 
-  def writeDatabase(db: Database, path: String = "db.enc"): Either[Throwable, Unit] =
+  def writeDatabase(db: Database, path: String = "db.enc"): Either[Throwable, java.nio.file.Path] =
     for
       encrypted <- serialize(db)
-      _         <- BinarySerialization.writeBytes(encrypted)
-    yield ()
+      path      <- BinarySerialization.writeBytes(encrypted)
+    yield path
 
   def readDatabase(path: String = "db.enc"): Either[Throwable, Database] =
     for
@@ -96,15 +96,19 @@ object JsonSerialization {
 
 object BinarySerialization {
 
-  def writeBytes(data: Array[Byte], path: String = "db.enc"): Either[Throwable, Unit] =
+  def writeBytes(
+      data: Array[Byte],
+      path: String = "db.enc"
+  ): Either[Throwable, java.nio.file.Path] =
     try
-      Files.write(
-        Paths.get(path),
-        data,
-        StandardOpenOption.CREATE,
-        StandardOpenOption.TRUNCATE_EXISTING
+      Right(
+        Files.write(
+          Paths.get(path),
+          data,
+          StandardOpenOption.CREATE,
+          StandardOpenOption.TRUNCATE_EXISTING
+        )
       )
-      Right(())
     catch
       case e: Throwable =>
         Left(e)
