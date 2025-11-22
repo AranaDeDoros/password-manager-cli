@@ -27,14 +27,14 @@ object Security {
   import javax.crypto.Cipher
   import javax.crypto.spec.{GCMParameterSpec, SecretKeySpec}
 
-  object Crypto extends PasswordEncryptor:
+  object Crypto:
 
-    override def encrypt(dp: DecryptedPassword): EncryptedPassword =
+    def encrypt(dp: DecryptedPassword): EncryptedPassword =
       EncryptedPassword(
         encrypt(dp.value.getBytes(java.nio.charset.Charset.forName("UTF-8")))
       )
 
-    override def decrypt(ep: EncryptedPassword): DecryptedPassword =
+    def decrypt(ep: EncryptedPassword): DecryptedPassword =
       DecryptedPassword(
         new String(decrypt(ep.bytes), "UTF_8")
       )
@@ -48,24 +48,21 @@ object Security {
       val nonce = new Array[Byte](GCM_NONCE_SIZE)
       rnd.nextBytes(nonce)
 
-      val cipher    = Cipher.getInstance("AES/GCM/NoPadding")
-      val spec      = new GCMParameterSpec(GCM_TAG_SIZE, nonce)
-      val secretKey = new SecretKeySpec(key, "AES")
-
-      cipher.init(Cipher.ENCRYPT_MODE, secretKey, spec)
+      val cipher     = makeCipher(nonce, Cipher.ENCRYPT_MODE)
       val ciphertext = cipher.doFinal(plain)
-
       nonce ++ ciphertext
 
     def decrypt(data: Array[Byte])(using key: SecretKey): Array[Byte] =
       val (nonce, ciphertext) = data.splitAt(GCM_NONCE_SIZE)
-
-      val cipher    = Cipher.getInstance("AES/GCM/NoPadding")
-      val spec      = new GCMParameterSpec(GCM_TAG_SIZE, nonce)
-      val secretKey = new SecretKeySpec(key, "AES")
-
-      cipher.init(Cipher.DECRYPT_MODE, secretKey, spec)
+      val cipher              = makeCipher(nonce, Cipher.DECRYPT_MODE)
       cipher.doFinal(ciphertext)
+
+    private def makeCipher(nonce: Array[Byte], mode: Int)(using key: SecretKey): Cipher =
+      val cipher: Cipher = Cipher.getInstance("AES/GCM/NoPadding")
+      val spec           = new GCMParameterSpec(GCM_TAG_SIZE, nonce)
+      val secretKey      = new SecretKeySpec(key, "AES")
+      cipher.init(mode, secretKey, spec)
+      cipher
 
   final case class DecryptedPassword(value: String):
     override def toString: String = "<DecryptedPassword>"
@@ -73,6 +70,7 @@ object Security {
   final case class EncryptedPassword(bytes: Array[Byte]):
     override def toString: String = "<EncryptedPassword>"
 
+  @deprecated("Reserved for future use. Use Crypto object directly.")
   trait PasswordEncryptor:
     def encrypt(dp: DecryptedPassword): EncryptedPassword
     def decrypt(ep: EncryptedPassword): DecryptedPassword
@@ -97,7 +95,7 @@ object Security {
   class PasswordManager(masterPasswordHash: String):
     private val master = new MasterPasswordService()
 
-    def authenticate(input: String): Boolean =
+    private def authenticate(input: String): Boolean =
       master.verify(input, masterPasswordHash)
 
     def validate(master: String)(f: => Boolean): Either[String, Boolean] =
