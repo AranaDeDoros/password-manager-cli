@@ -1,110 +1,50 @@
 package org.aranadedoros
 package inout
 
-import auth.Security.{EncryptedPassword, MasterHashStorage, MasterPasswordService, PasswordManager}
-
-import IO.{checkDB, enteredPassword}
 import model.Model.{Database, Entry, Flag}
-import persistence.Persistence.FileUtils
+import parsing.Parsers
 import serialization.JsonSerialization
 
-import org.aranadedoros.parsing.Parsers.FlagParser
-
-import java.io.File
-import scala.io.StdIn.readLine
-
 object IO {
-  def checkDB():  Either[Throwable, Boolean] =
-    println("enter master password")
-    val password: String = enteredPassword
-    try
-      val dbFile = new File("db.enc")
-      if !dbFile.exists() then
-        println("creating...")
-        println("enter username")
-        val usr = readLine()
-
-        FileUtils.init(usr, password) match
-          case Right(db) =>
-            println(s"database created !")
-            Right(true)
-          case Left(err) =>
-            println(s"error creating database: ${err.getStackTrace.mkString("Array(", ", ", ")")}")
-            Left(err)
-
-      else
-        println("database already exists")
-        val result =
-          for
-            hash <- MasterHashStorage.loadHash()
-            mngr  = new PasswordManager(hash)
-            validated <- mngr.validate(password) {
-              password.trim.nonEmpty && password.trim.length >= 6
-            }.left.map(msg => new Exception(msg))
-            finalResult <- if validated then
-                Right(true)
-            else
-            Left(new Exception("Invalid master password")) // error
-          yield finalResult
-        result
-    catch
-        case e:
-          NullPointerException => println(e.getMessage)
-          Left(e)
-
   def enteredPassword: String =
     val console = System.console()
-    if console == null then System.exit(1)
-    val passwordChars = console.readPassword("Password: ")
-    val password      = String(passwordChars)
-    password
+    if console != null then
+      val passwordChars = console.readPassword("Password: ")
+      String(passwordChars)
+    else
+      println("Console not available. Using StdIn.readLine as fallback:")
+      scala.io.StdIn.readLine("Password: ")
+
+  def promptFlag(args: Array[String]): Either[String, Flag] =
+    Parsers.FlagParser.parse(args.toList)
 }
 
 object CommandHandler:
-
-  def handle(flag: Flag): Unit =
+  def execute(db: Database, flag: Flag, passwordPrompt: => String): Either[Throwable, Database] =
     flag match
+
       case Flag.Add(site, key) =>
-
-        println(s"adding entry: ${key.value}")
-        println("enter password")
-
-        val password  = enteredPassword
-        val encrypted = EncryptedPassword(password.getBytes("UTF-8"))
+        val password  = passwordPrompt
+        val encrypted = auth.Security.EncryptedPassword(password.getBytes("UTF-8"))
         val entry     = Entry(site, key, encrypted)
-        val db = JsonSerialization.readDatabase() match
-          case Right(d) => d
-          case Left(_)  => Database()
-
-        val newDb = db + entry
-        JsonSerialization.writeDatabase(newDb) match
-          case Right(_)  => println(newDb)
-          case Left(err) => println(s"error writing database: ${err.getMessage}")
+        val newDb     = db + entry
+        JsonSerialization.writeDatabase(newDb).map(_ => newDb)
 
       case Flag.Delete(_, key) =>
-        println(s"deleting entry: ${key.value}")
-        val db = JsonSerialization.readDatabase() match
-          case Right(d) => d
-          case Left(_)  => Database()
-
         val newDb = db - key
-        JsonSerialization.writeDatabase(newDb) match
-          case Right(_)  => println(newDb)
-          case Left(err) => println(s"error writing database: ${err.getMessage}")
+        JsonSerialization.writeDatabase(newDb).map(_ => newDb)
 
       case Flag.ListAll =>
-        JsonSerialization.readDatabase() match
-          case Right(db) => println(db)
-          case Left(err) => println(s"error reading DB: ${err.getMessage}")
+        println(db)
+        Right(db)
 
       case Flag.Search(key) =>
-        val db = JsonSerialization.readDatabase() match
-          case Right(d) => d
-          case Left(_)  => Database()
         println(db / key)
+        Right(db)
 
       case Flag.Init =>
-        checkDB()
+        Right(db) // checkDB / init handled in DatabaseManager
 
       case Flag.Help =>
         println("use a valid option (--add, --del, --list, --search, --init)")
+        Right(db)
