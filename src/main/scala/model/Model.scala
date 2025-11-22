@@ -75,11 +75,7 @@ object Model {
       entries.map { case (k, v) => s" ${v.site.value} | ${v.key.value}" }.mkString("\n")
 
     def /(key: EntryKey): Either[String, Entry] =
-      val optionEntry = entries.find((k, v) => v.key == key)
-      optionEntry match {
-        case Some((k, v)) => Right(v)
-        case None         => Left("Not found")
-      }
+      entries.get(key).toRight(s"not found ${key.value}")
 
     def searchEntry(key: EntryKey): Either[String, Entry] =
       /(key)
