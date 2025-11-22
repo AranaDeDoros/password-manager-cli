@@ -2,9 +2,7 @@ package org.aranadedoros
 package auth
 
 import auth.Security.KeyProvider.given_SecretKey
-
 import de.mkammerer.argon2.{Argon2, Argon2Factory}
-
 import java.nio.file.{Files, Path, Paths}
 
 object Security {
