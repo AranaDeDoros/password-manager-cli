@@ -33,7 +33,7 @@ jobs:
       uses: sbt/setup-sbt@v1
 
     - name: Run tests
-      if: false   # o puedes poner `run: sbt test` cuando quieras habilitarlo
+      if: false   # `run: sbt test`
       run: sbt test
 
    
